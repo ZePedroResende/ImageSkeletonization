@@ -13,7 +13,6 @@ int file_exists(char *file_name, Stat *buffer){
   return result;
 }
 
-
 int process_files(int number_files, char *files[]){
 
   for(int i = 0; i < number_files; i++){
@@ -29,8 +28,6 @@ int process_files(int number_files, char *files[]){
   }
   return 0;
 }
-
-
 
 int main(int argc, char *argv[]){
   if(argc < 2){
