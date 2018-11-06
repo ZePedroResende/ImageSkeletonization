@@ -1,13 +1,5 @@
-#!/bin/sh
-
-source /share/apps/intel/parallel_studio_xe_2019/compilers_and_libraries_2019/linux/bin/compilervars.sh intel64
-
-echo "Compiling..."
-
-make
-
-echo "Running the tests"
-
-./bin/lab1
-
-echo "You can now view timings.dat"
+#!/bin/bash
+module load gcc/5.3.0
+cd $HOME/dev/PCP/
+make clean && make
+./bin/skeleton_seq haskell.pgm
