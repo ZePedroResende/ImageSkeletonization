@@ -1,7 +1,48 @@
 #include <cstdio>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 typedef struct stat *Stat;
+
+int **matrix, width, height, Maxval;
+
+void skip_comments(FILE * pgmFile){
+  char c = fgetc(pgmFile);
+  if (c == '#') while(fgetc(pgmFile) != '\n');
+  else ungetc(c, pgmFile);
+}
+
+void readPgmFile(FILE * fin, FILE * fout){
+  char LINE[30];
+  int i, j, r, temp;
+
+  fprintf(fout,"%s\n", fgets(LINE, 30, fin));
+  skip_comments(fin);
+  r = fscanf(fin, "%d %d %d", &width, &height, &Maxval);
+  fprintf(fout, "%d %d\n%d\n", width, height, Maxval);
+
+  printf("%d x %d\nInitializing...\n", width, height);
+
+
+  //int matrix[width][weigh];
+  //matrix = (int *) malloc(width * height * sizeof(int));
+  // array simula matrix matrix[i * col + j]
+
+  matrix = (int **) malloc(height * sizeof(int *)); 
+
+  printf("%d x %d\nInitializing...\n", width, height);
+  for (i=0; i<height; i++) 
+    matrix[i] = (int *) malloc(width * sizeof(int)); 
+
+  printf("%d x %d\nInitializing...\n", width, height);
+
+  for(i=0; i < height ; i++){ /* Initialize the local rep'n */
+    for(j=0; j < width; j++){ /* Initialize the local rep'n */
+      r = fscanf(fin, "%d ", &temp);
+      matrix[i][j] = temp;
+    }
+  }
+}
 
 int file_exists(char *file_name, Stat *buffer){
   int result;
@@ -14,13 +55,31 @@ int file_exists(char *file_name, Stat *buffer){
 }
 
 int process_files(int number_files, char *files[]){
-
+  FILE *fin, *fout;
   for(int i = 0; i < number_files; i++){
 
     Stat buffer = (Stat) malloc(sizeof(struct stat));
 
     if(!file_exists(files[i], &buffer)){
-      printf("Existe !\n");
+
+      if ((fin = fopen(files[i], "r"))==NULL){
+        fprintf(stderr, "Failed to open input");
+        exit(1);
+      }
+
+      char out[strlen(files[i]) + 4];
+      strcpy(out, "out_");
+      strcat(out, files[i]);
+      printf("file %s\n", out);
+      if ((fout = fopen( out, "ab+"))==NULL){
+        fprintf(stderr, "Failed to open output\n");
+        exit(1);
+      }
+
+      readPgmFile(fin, fout);
+
+      fclose(fin);
+      fclose(fout);
     }
 
     free(buffer);
