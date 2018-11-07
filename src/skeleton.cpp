@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <libgen.h>
+
 typedef struct stat *Stat;
 
 int **matrix, width, height, Maxval;
@@ -54,6 +56,24 @@ int file_exists(char *file_name, Stat *buffer){
   return result;
 }
 
+
+int output_file(char *in_path, char *out_path){
+  char  *dname, *bname, *dirc, *basec;
+  *out_path = NULL;
+  dirc = strdup(in_path);
+  basec = strdup(in_path);
+  dname = dirname(dirc);
+  bname = basename(basec);
+  if(strcmp(dname,".")){
+    strcat(out_path, dname);
+    strcat(out_path, "/");
+  }
+  strcat(out_path, "out_");
+  strcat(out_path, bname);
+  
+  return 1;
+}
+
 int process_files(int number_files, char *files[]){
   FILE *fin, *fout;
   for(int i = 0; i < number_files; i++){
@@ -66,11 +86,10 @@ int process_files(int number_files, char *files[]){
         fprintf(stderr, "Failed to open input");
         exit(1);
       }
-
-      char out[strlen(files[i]) + 4];
-      strcpy(out, "out_");
-      strcat(out, files[i]);
+      char out[strlen(files[i]) + 4]; 
+      output_file(files[i], out);
       printf("file %s\n", out);
+
       if ((fout = fopen( out, "ab+"))==NULL){
         fprintf(stderr, "Failed to open output\n");
         exit(1);
