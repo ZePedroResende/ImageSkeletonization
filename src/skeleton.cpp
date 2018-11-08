@@ -18,39 +18,6 @@ void skip_comments(FILE * pgmFile){
   }
 }
 
-void readPgmFile(FILE * fin, FILE * fout){
-  char LINE[30];
-  int i, j, r, temp;
-  fprintf(fout,"%s\n", fgets(LINE, 30, fin));
-  skip_comments(fin);
-
-  r = fscanf(fin, "%d %d %d", &width, &height, &Maxval);
-
-  fprintf(fout, "%d %d\n%d\n", width, height, Maxval);
-  printf("%d x %d\nInitializing...\n", width, height);
-
-  /*int matrix[width][weigh];
-  matrix = (int *) malloc(width * height * sizeof(int));
-   array simula matrix matrix[i * col + j];
-*/
-  
-  matrix = (int **) malloc(height * sizeof(int *)); 
-
-  printf("%d x %d\nInitializing...\n", width, height);
-
-  for (i=0; i<height; i++){
-    matrix[i] = (int *) malloc(width * sizeof(int)); 
-  }
-
-  printf("%d x %d\nInitializing...\n", width, height);
-
-  for(i=0; i < height ; i++){ 
-    for(j=0; j < width; j++){ 
-      r = fscanf(fin, "%d ", &temp);
-      matrix[i][j] = temp;
-    }
-  }
-}
 int can_be_removed(int i, int j, int metodo){
   int temp[9], res = 1, iter;
   memset(temp,0,sizeof(temp));
@@ -125,7 +92,22 @@ int can_be_removed(int i, int j, int metodo){
   return   metodo & 1 ? temp[3] == 0 && temp[5] == 0 && ( temp[1] == 0 || temp[7] == 0 ) : temp[1] == 0 && temp[7] == 0 && ( temp[3] == 0 || temp[5] == 0 );
 }
 
-int process_file(){
+int print_output(FILE * fout){
+  int i, j;
+
+  for(i =0; i < height; i++){
+    for(j =0; j < width; j++){
+      fprintf(fout, "%d ", matrix[i][j]);
+    }
+    fprintf(fout, "\n");
+  }
+
+  printf("Skeleton done!");
+
+  return 0;
+}
+
+int process_file(FILE * fout){
   int alt, i, j, temp, flag;
   do{
     flag = 0;
@@ -142,7 +124,50 @@ int process_file(){
     }
 
   }while(flag);
+
+  printf("Writing the output file\n");
+
+  print_output(fout);
+
   return 0;
+}
+
+void readPgmFile(FILE * fin, FILE * fout){
+  char LINE[30];
+  int i, j, r, temp;
+  fprintf(fout,"%s\n", fgets(LINE, 30, fin));
+  skip_comments(fin);
+
+  r = fscanf(fin, "%d %d %d", &width, &height, &Maxval);
+
+  fprintf(fout, "%d %d\n%d\n", width, height, Maxval);
+  printf("%d x %d\nInitializing...\n", width, height);
+
+  /*int matrix[width][weigh];
+  matrix = (int *) malloc(width * height * sizeof(int));
+   array simula matrix matrix[i * col + j];
+*/
+  
+  matrix = (int **) malloc(height * sizeof(int *)); 
+
+  printf("%d x %d\nInitializing...\n", width, height);
+
+  for (i=0; i<height; i++){
+    matrix[i] = (int *) malloc(width * sizeof(int)); 
+  }
+
+  printf("%d x %d\nInitializing...\n", width, height);
+
+  for(i=0; i < height ; i++){ 
+    for(j=0; j < width; j++){ 
+      r = fscanf(fin, "%d ", &temp);
+      matrix[i][j] = temp;
+    }
+  }
+
+   printf("Processing file\n");
+
+  process_file(fout);
 }
 
 int file_exists(char *file_name, Stat *buffer){
