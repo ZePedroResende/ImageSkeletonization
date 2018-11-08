@@ -1,6 +1,9 @@
 # Folders
 bin/*
 build/*
+.idea
+.idea/
+
 
 # Prerequisites
 *.d
