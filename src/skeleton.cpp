@@ -6,14 +6,16 @@
 
 typedef struct stat *Stat;
 
-int **matrix, width, height;
+int ***matrix, width, height, position ;
 
 void print_matrix(){
+  for(int k = 0; k< 2; k ++){
   for(int i = 0; i<height; i++){
     for(int j =0; j< width; j++){
-      printf("%d\t", matrix[i][j]);
+      printf("%d\t", matrix[k][i][j]);
     }
       printf("\n");
+  }
   }
 
       printf("\n\n");
@@ -36,7 +38,7 @@ int i1(int *temp){
     total += (temp[res] > 0);
   }
 
-  return (2 <= total && total <= 6);
+  return ((2 <= total) && (total <= 6));
 }
 
 int i2(int *temp){
@@ -54,7 +56,7 @@ int i3(int *temp, int metodo){
   return ( metodo & 1 ? !temp[3]  + !temp[5] + ( !temp[1]  * !temp[7] ) : !temp[1] + !temp[7] + ( !temp[3] * !temp[5] ));
 }
 
-int can_be_removed(int i, int j, int metodo){
+int can_be_removed(int i, int j, int metodo ){
   int temp[9];
   memset(temp,0,sizeof(temp));
  
@@ -64,38 +66,37 @@ int can_be_removed(int i, int j, int metodo){
   min_j = j-1 > 0;
   max_j = j+1 < width;
 
-  temp[0] = matrix[i][j];
+  temp[0] = matrix[position][i][j];
 
   if(min_i){
-    temp[1] = matrix[i-1][j];
+    temp[1] = matrix[position][i-1][j];
 
     if(min_j){
-      temp[8] = matrix[i-1][j-1];
+      temp[8] = matrix[position][i-1][j-1];
     }
 
     if(max_j){
-      temp[2] = matrix[i-1][j+1];
+      temp[2] = matrix[position][i-1][j+1];
     }
   }
   if(max_i){
-    temp[5] = matrix[i+1][j];
+    temp[5] = matrix[position][i+1][j];
 
     if(min_j){
-      temp[6] = matrix[i+1][j-1];
+      temp[6] = matrix[position][i+1][j-1];
     }
     if(max_j){
-      temp[4] = matrix[i+1][j+1];
+      temp[4] = matrix[position][i+1][j+1];
     }
   }
 
   if(min_j){
-    temp[7] = matrix[i][j-1];
+    temp[7] = matrix[position][i][j-1];
   }
 
   if(max_j){
-    temp[3] = matrix[i][j+1];
+    temp[3] = matrix[position][i][j+1];
   }
-  
   return i1(temp) &&  i2(temp)  && i3(temp, metodo);  
 }
 
@@ -104,7 +105,7 @@ int print_output(FILE * fout){
 
   for(i =0; i < height; i++){
     for(j =0; j < width; j++){
-      fprintf(fout, "%d ", matrix[i][j]);
+      fprintf(fout, "%d ", matrix[position][i][j]);
     }
     fprintf(fout, "\n");
   }
@@ -115,23 +116,23 @@ int print_output(FILE * fout){
 }
 
 int process_file(FILE * fout){
-  int alt, i, j, temp = 0, flag;
+  int alt, i, j, acc = 0, flag;
+  position = acc &1;
   do{
     flag = 0;
-
     for(alt=0; alt < 2; alt++){
       for(i =0; i < height; i++){
         for(j =0; j < width; j++){
-          if(matrix[i][j] && can_be_removed(i,j,alt)){
-            matrix[i][j] = 0;
-            //print_matrix();
+          if(matrix[position][i][j] && can_be_removed(i,j,alt)){
+            matrix[!position][i][j] = 0;
             flag = 1;
           }      
         } 
       }
     }
-  temp++;
-  //printf("Iter : %d !\n", temp);
+
+    acc++;
+    position = acc &1;
   }while(flag);
 
   printf("Writing the output file\n");
@@ -143,7 +144,7 @@ int process_file(FILE * fout){
 
 void readPgmFile(FILE * fin, FILE * fout){
   char LINE[30];
-  int i, j, r, temp;
+  int i, j, k, r, temp;
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
@@ -157,22 +158,28 @@ void readPgmFile(FILE * fin, FILE * fout){
    array simula matrix matrix[i * col + j];
 */
   
-  matrix = (int **) malloc(height * sizeof(int *)); 
-
-  printf("%d x %d\nInitializing...\n", width, height);
-
-  for (i=0; i<height; i++){
-    matrix[i] = (int *) malloc(width * sizeof(int)); 
+  matrix = (int ***) malloc(2 * sizeof(int **)); 
+  for(k = 0; k < 2; k++){
+    matrix[k] = (int **) malloc(height * sizeof(int *)); 
   }
 
   printf("%d x %d\nInitializing...\n", width, height);
 
-  for(i=0; i < height ; i++){ 
-    for(j=0; j < width; j++){ 
-      r = fscanf(fin, "%d ", &temp);
-      matrix[i][j] = temp;
+  for(k = 0; k < 2; k++){
+    for (i=0; i<height; i++){
+      matrix[k][i] = (int *) malloc(width * sizeof(int)); 
     }
   }
+
+  printf("%d x %d\nInitializing...\n", width, height);
+
+    for(i=0; i < height ; i++){ 
+      for(j=0; j < width; j++){ 
+        r = fscanf(fin, "%d ", &temp);
+        matrix[0][i][j] = temp;
+        matrix[1][i][j] = temp;
+      }
+    }
 
    printf("Processing file\n");
 
