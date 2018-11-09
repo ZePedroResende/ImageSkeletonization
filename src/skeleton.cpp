@@ -61,9 +61,9 @@ int can_be_removed(int i, int j, int metodo ){
   memset(temp,0,sizeof(temp));
  
   int min_i, max_i, min_j, max_j;
-  min_i = i-1 > 0;
+  min_i = i-1 >= 0;
   max_i = i+1 < height;
-  min_j = j-1 > 0;
+  min_j = j-1 >= 0;
   max_j = j+1 < width;
 
   temp[0] = matrix[position][i][j];
@@ -115,6 +115,16 @@ int print_output(FILE * fout){
   return 0;
 }
 
+void copy_matrix(){
+  int i,j;
+  for(i =0; i < height; i++){
+    for(j =0; j < width; j++){
+         
+      matrix[position][i][j] = matrix[!position][i][j];
+    }      
+  }
+} 
+
 int process_file(FILE * fout){
   int alt, i, j, acc = 0, flag;
   position = acc &1;
@@ -130,6 +140,8 @@ int process_file(FILE * fout){
         } 
       }
     }
+
+    copy_matrix();
 
     acc++;
     position = acc &1;
