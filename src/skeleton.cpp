@@ -6,7 +6,18 @@
 
 typedef struct stat *Stat;
 
-int **matrix, width, height, Maxval;
+int **matrix, width, height;
+
+void print_matrix(){
+  for(int i = 0; i<height; i++){
+    for(int j =0; j< width; j++){
+      printf("%d\t", matrix[i][j]);
+    }
+      printf("\n");
+  }
+
+      printf("\n\n");
+}
 
 void skip_comments(FILE * pgmFile){
   char c = fgetc(pgmFile);
@@ -18,21 +29,34 @@ void skip_comments(FILE * pgmFile){
   }
 }
 
-int can_be_removed(int i, int j, int metodo){
-  int temp[9], res = 1, iter;
-  memset(temp,0,sizeof(temp));
+int i1(int *temp){
+  int  res,total = 0;
 
-  /*
-  temp[0] = matrix[i][j];
-  temp[1] = i - 1 > 0                       ? matrix[i-1][j]   : 0;
-  temp[2] = i - 1 > 0      && j + 1 < width ? matrix[i-1][j+1] : 0;
-  temp[3] = j + 1 < width                   ? matrix[i]  [j+1] : 0;
-  temp[4] = i + 1 < height && j + 1 < width ? matrix[i+1][j+1] : 0;
-  temp[5] = i + 1 < height                  ? matrix[i+1][j]   : 0;
-  temp[6] = i + 1 < height && j - 1 > 0     ? matrix[i+1][j-1] : 0;
-  temp[7] = j - 1 > 0                       ? matrix[i]  [j-1] : 0;
-  temp[8] = i - 1 > 0      && j - 1 > 0     ? matrix[i-1][j-1] : 0;
-  */
+  for(res = 1; res < 9; res++){
+    total += (temp[res] > 0);
+  }
+
+  return (2 <= total && total <= 6);
+}
+
+int i2(int *temp){
+  int res,trans = 0;
+
+  for(res = 2; res < 8 && trans <2 ; res++){
+    trans += temp[res-1] != temp[res];
+  }
+  trans += temp[8] != temp[1];
+
+  return trans == 2;
+}
+
+int i3(int *temp, int metodo){
+  return ( metodo & 1 ? !temp[3]  + !temp[5] + ( !temp[1]  * !temp[7] ) : !temp[1] + !temp[7] + ( !temp[3] * !temp[5] ));
+}
+
+int can_be_removed(int i, int j, int metodo){
+  int temp[9];
+  memset(temp,0,sizeof(temp));
  
   int min_i, max_i, min_j, max_j;
   min_i = i-1 > 0;
@@ -72,24 +96,7 @@ int can_be_removed(int i, int j, int metodo){
     temp[3] = matrix[i][j+1];
   }
   
-  int total = 0;
-  for(res = 1; res < 9; res++){
-    total += (temp[res] > 0);
-  }
-  if(2 <= total && total <= 6){
-    return 0;
-  }
-  int trans = 0;
-  for(res = 2; res < 8 && trans <2 ; res++){
-    if(temp[res-1] != temp[res]){
-      trans++;
-    }
-  }
-  if(trans> 1){
-    return 0;
-  }
-
-  return   metodo & 1 ? temp[3] == 0 && temp[5] == 0 && ( temp[1] == 0 || temp[7] == 0 ) : temp[1] == 0 && temp[7] == 0 && ( temp[3] == 0 || temp[5] == 0 );
+  return i1(temp) &&  i2(temp)  && i3(temp, metodo);  
 }
 
 int print_output(FILE * fout){
@@ -108,21 +115,23 @@ int print_output(FILE * fout){
 }
 
 int process_file(FILE * fout){
-  int alt, i, j, temp, flag;
+  int alt, i, j, temp = 0, flag;
   do{
     flag = 0;
 
     for(alt=0; alt < 2; alt++){
       for(i =0; i < height; i++){
         for(j =0; j < width; j++){
-          if( can_be_removed(i,j,alt)){
+          if(matrix[i][j] && can_be_removed(i,j,alt)){
             matrix[i][j] = 0;
+            //print_matrix();
             flag = 1;
           }      
         } 
       }
     }
-
+  temp++;
+  //printf("Iter : %d !\n", temp);
   }while(flag);
 
   printf("Writing the output file\n");
@@ -138,9 +147,9 @@ void readPgmFile(FILE * fin, FILE * fout){
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
-  r = fscanf(fin, "%d %d %d", &width, &height, &Maxval);
+  r = fscanf(fin, "%d %d", &width, &height);
 
-  fprintf(fout, "%d %d\n%d\n", width, height, Maxval);
+  fprintf(fout, "%d %d\n", width, height);
   printf("%d x %d\nInitializing...\n", width, height);
 
   /*int matrix[width][weigh];
