@@ -6,7 +6,20 @@
 
 typedef struct stat *Stat;
 
-int **matrix, width, height, Maxval;
+int ***matrix, width, height, position ;
+
+void print_matrix(){
+  for(int k = 0; k< 2; k ++){
+    for(int i = 0; i<height; i++){
+      for(int j =0; j< width; j++){
+        printf("%d\t", matrix[k][i][j]);
+      }
+      printf("\n");
+    }
+  }
+
+  printf("\n\n");
+}
 
 void skip_comments(FILE * pgmFile){
   char c = fgetc(pgmFile);
@@ -18,78 +31,74 @@ void skip_comments(FILE * pgmFile){
   }
 }
 
-int can_be_removed(int i, int j, int metodo){
-  int temp[9], res = 1, iter;
+int i1(int *temp){
+  int  res,total = 0;
+
+  for(res = 1; res < 9; res++){
+    total += (temp[res] > 0);
+  }
+
+  return ((2 <= total) && (total <= 6));
+}
+
+int i2(int *temp){
+  int res,trans = 0;
+
+  trans += temp[8] != temp[1];
+  for(res = 2; res < 9 && trans <3 ; res++){
+    trans += temp[res-1] != temp[res];
+  }
+
+  return (trans == 2);
+}
+
+int i3(int *temp, int metodo){
+  return ( metodo & 1 ? !temp[3] || !temp[5] || ( !temp[1]  && !temp[7] ) : !temp[1] || !temp[7] || ( !temp[3] && !temp[5] ));
+}
+
+int can_be_removed(int i, int j, int metodo ){
+  int temp[9];
   memset(temp,0,sizeof(temp));
 
-  /*
-  temp[0] = matrix[i][j];
-  temp[1] = i - 1 > 0                       ? matrix[i-1][j]   : 0;
-  temp[2] = i - 1 > 0      && j + 1 < width ? matrix[i-1][j+1] : 0;
-  temp[3] = j + 1 < width                   ? matrix[i]  [j+1] : 0;
-  temp[4] = i + 1 < height && j + 1 < width ? matrix[i+1][j+1] : 0;
-  temp[5] = i + 1 < height                  ? matrix[i+1][j]   : 0;
-  temp[6] = i + 1 < height && j - 1 > 0     ? matrix[i+1][j-1] : 0;
-  temp[7] = j - 1 > 0                       ? matrix[i]  [j-1] : 0;
-  temp[8] = i - 1 > 0      && j - 1 > 0     ? matrix[i-1][j-1] : 0;
-  */
- 
   int min_i, max_i, min_j, max_j;
-  min_i = i-1 > 0;
+  min_i = i-1 >= 0;
   max_i = i+1 < height;
-  min_j = j-1 > 0;
+  min_j = j-1 >= 0;
   max_j = j+1 < width;
 
-  temp[0] = matrix[i][j];
+  temp[0] = matrix[position][i][j];
 
   if(min_i){
-    temp[1] = matrix[i-1][j];
+    temp[1] = matrix[position][i-1][j];
 
     if(min_j){
-      temp[8] = matrix[i-1][j-1];
+      temp[8] = matrix[position][i-1][j-1];
     }
 
     if(max_j){
-      temp[2] = matrix[i-1][j+1];
+      temp[2] = matrix[position][i-1][j+1];
     }
   }
   if(max_i){
-    temp[5] = matrix[i+1][j];
+    temp[5] = matrix[position][i+1][j];
 
     if(min_j){
-      temp[6] = matrix[i+1][j-1];
+      temp[6] = matrix[position][i+1][j-1];
     }
     if(max_j){
-      temp[4] = matrix[i+1][j+1];
+      temp[4] = matrix[position][i+1][j+1];
     }
   }
 
   if(min_j){
-    temp[7] = matrix[i][j-1];
+    temp[7] = matrix[position][i][j-1];
   }
 
   if(max_j){
-    temp[3] = matrix[i][j+1];
-  }
-  
-  int total = 0;
-  for(res = 1; res < 9; res++){
-    total += (temp[res] > 0);
-  }
-  if(2 <= total && total <= 6){
-    return 0;
-  }
-  int trans = 0;
-  for(res = 2; res < 8 && trans <2 ; res++){
-    if(temp[res-1] != temp[res]){
-      trans++;
-    }
-  }
-  if(trans> 1){
-    return 0;
+    temp[3] = matrix[position][i][j+1];
   }
 
-  return   metodo & 1 ? temp[3] == 0 && temp[5] == 0 && ( temp[1] == 0 || temp[7] == 0 ) : temp[1] == 0 && temp[7] == 0 && ( temp[3] == 0 || temp[5] == 0 );
+  return i1(temp) &&  i2(temp)  && i3(temp, metodo);  
 }
 
 int print_output(FILE * fout){
@@ -97,7 +106,7 @@ int print_output(FILE * fout){
 
   for(i =0; i < height; i++){
     for(j =0; j < width; j++){
-      fprintf(fout, "%d ", matrix[i][j]);
+      fprintf(fout, "%d ", matrix[position][i][j]);
     }
     fprintf(fout, "\n");
   }
@@ -107,21 +116,36 @@ int print_output(FILE * fout){
   return 0;
 }
 
+void copy_matrix(){
+  int i,j;
+  for(i =0; i < height; i++){
+    for(j =0; j < width; j++){
+
+      matrix[position][i][j] = matrix[!position][i][j];
+    }      
+  }
+} 
+
 int process_file(FILE * fout){
-  int alt, i, j, temp, flag;
+  int alt, i, j, acc = 0, flag;
+  position = acc &1;
   do{
     flag = 0;
-
     for(alt=0; alt < 2; alt++){
       for(i =0; i < height; i++){
         for(j =0; j < width; j++){
-          if( can_be_removed(i,j,alt)){
-            matrix[i][j] = 0;
+          if(matrix[position][i][j] && can_be_removed(i,j,alt)){
+            matrix[!position][i][j] = 0;
             flag = 1;
           }      
         } 
       }
+      copy_matrix();
+
+      acc++;
+      position = acc &1;
     }
+
 
   }while(flag);
 
@@ -134,26 +158,31 @@ int process_file(FILE * fout){
 
 void readPgmFile(FILE * fin, FILE * fout){
   char LINE[30];
-  int i, j, r, temp;
+  int i, j, k, r, temp;
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
-  r = fscanf(fin, "%d %d %d", &width, &height, &Maxval);
+  r = fscanf(fin, "%d %d", &width, &height);
 
-  fprintf(fout, "%d %d\n%d\n", width, height, Maxval);
+  fprintf(fout, "%d %d\n", width, height);
   printf("%d x %d\nInitializing...\n", width, height);
 
   /*int matrix[width][weigh];
-  matrix = (int *) malloc(width * height * sizeof(int));
-   array simula matrix matrix[i * col + j];
-*/
-  
-  matrix = (int **) malloc(height * sizeof(int *)); 
+    matrix = (int *) malloc(width * height * sizeof(int));
+    array simula matrix matrix[i * col + j];
+    */
+
+  matrix = (int ***) malloc(2 * sizeof(int **)); 
+  for(k = 0; k < 2; k++){
+    matrix[k] = (int **) malloc(height * sizeof(int *)); 
+  }
 
   printf("%d x %d\nInitializing...\n", width, height);
 
-  for (i=0; i<height; i++){
-    matrix[i] = (int *) malloc(width * sizeof(int)); 
+  for(k = 0; k < 2; k++){
+    for (i=0; i<height; i++){
+      matrix[k][i] = (int *) malloc(width * sizeof(int)); 
+    }
   }
 
   printf("%d x %d\nInitializing...\n", width, height);
@@ -161,11 +190,12 @@ void readPgmFile(FILE * fin, FILE * fout){
   for(i=0; i < height ; i++){ 
     for(j=0; j < width; j++){ 
       r = fscanf(fin, "%d ", &temp);
-      matrix[i][j] = temp;
+      matrix[0][i][j] = temp;
+      matrix[1][i][j] = temp;
     }
   }
 
-   printf("Processing file\n");
+  printf("Processing file\n");
 
   process_file(fout);
 }
@@ -197,7 +227,7 @@ int output_file(char *in_path, char *out_path){
 
   strcat(out_path, "out_");
   strcat(out_path, bname);
-  
+
   return 0;
 }
 
