@@ -10,15 +10,15 @@ int ***matrix, width, height, position ;
 
 void print_matrix(){
   for(int k = 0; k< 2; k ++){
-  for(int i = 0; i<height; i++){
-    for(int j =0; j< width; j++){
-      printf("%d\t", matrix[k][i][j]);
-    }
+    for(int i = 0; i<height; i++){
+      for(int j =0; j< width; j++){
+        printf("%d\t", matrix[k][i][j]);
+      }
       printf("\n");
-  }
+    }
   }
 
-      printf("\n\n");
+  printf("\n\n");
 }
 
 void skip_comments(FILE * pgmFile){
@@ -53,13 +53,13 @@ int i2(int *temp){
 }
 
 int i3(int *temp, int metodo){
-  return ( metodo & 1 ? !temp[3] + !temp[5] + ( !temp[1]  * !temp[7] ) : !temp[1] + !temp[7] + ( !temp[3] * !temp[5] ));
+  return ( metodo & 1 ? !temp[3] || !temp[5] || ( !temp[1]  && !temp[7] ) : !temp[1] || !temp[7] || ( !temp[3] && !temp[5] ));
 }
 
 int can_be_removed(int i, int j, int metodo ){
   int temp[9];
   memset(temp,0,sizeof(temp));
- 
+
   int min_i, max_i, min_j, max_j;
   min_i = i-1 >= 0;
   max_i = i+1 < height;
@@ -97,6 +97,7 @@ int can_be_removed(int i, int j, int metodo ){
   if(max_j){
     temp[3] = matrix[position][i][j+1];
   }
+
   return i1(temp) &&  i2(temp)  && i3(temp, metodo);  
 }
 
@@ -119,7 +120,7 @@ void copy_matrix(){
   int i,j;
   for(i =0; i < height; i++){
     for(j =0; j < width; j++){
-         
+
       matrix[position][i][j] = matrix[!position][i][j];
     }      
   }
@@ -139,12 +140,13 @@ int process_file(FILE * fout){
           }      
         } 
       }
+      copy_matrix();
+
+      acc++;
+      position = acc &1;
     }
 
-    copy_matrix();
 
-    acc++;
-    position = acc &1;
   }while(flag);
 
   printf("Writing the output file\n");
@@ -166,10 +168,10 @@ void readPgmFile(FILE * fin, FILE * fout){
   printf("%d x %d\nInitializing...\n", width, height);
 
   /*int matrix[width][weigh];
-  matrix = (int *) malloc(width * height * sizeof(int));
-   array simula matrix matrix[i * col + j];
-*/
-  
+    matrix = (int *) malloc(width * height * sizeof(int));
+    array simula matrix matrix[i * col + j];
+    */
+
   matrix = (int ***) malloc(2 * sizeof(int **)); 
   for(k = 0; k < 2; k++){
     matrix[k] = (int **) malloc(height * sizeof(int *)); 
@@ -185,15 +187,15 @@ void readPgmFile(FILE * fin, FILE * fout){
 
   printf("%d x %d\nInitializing...\n", width, height);
 
-    for(i=0; i < height ; i++){ 
-      for(j=0; j < width; j++){ 
-        r = fscanf(fin, "%d ", &temp);
-        matrix[0][i][j] = temp;
-        matrix[1][i][j] = temp;
-      }
+  for(i=0; i < height ; i++){ 
+    for(j=0; j < width; j++){ 
+      r = fscanf(fin, "%d ", &temp);
+      matrix[0][i][j] = temp;
+      matrix[1][i][j] = temp;
     }
+  }
 
-   printf("Processing file\n");
+  printf("Processing file\n");
 
   process_file(fout);
 }
@@ -225,7 +227,7 @@ int output_file(char *in_path, char *out_path){
 
   strcat(out_path, "out_");
   strcat(out_path, bname);
-  
+
   return 0;
 }
 
