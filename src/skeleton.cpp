@@ -44,12 +44,12 @@ int i1(int *temp){
 int i2(int *temp){
   int res,trans = 0;
 
-  for(res = 2; res < 8 && trans <2 ; res++){
+  for(res = 2; res < 9 && trans <2 ; res++){
     trans += temp[res-1] != temp[res];
   }
   trans += temp[8] != temp[1];
 
-  return trans == 2;
+  return (trans == 2);
 }
 
 int i3(int *temp, int metodo){
