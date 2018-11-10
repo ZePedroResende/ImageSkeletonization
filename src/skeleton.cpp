@@ -120,6 +120,7 @@ void copy_matrix(){
 
 int process_file(FILE * fout){
   int alt, i, j, index, flag;
+  
   do{
     flag = 0;
     for(alt=0; alt < 2; alt++){
@@ -128,6 +129,7 @@ int process_file(FILE * fout){
           index = i * width +j;
           if(ret[index] && can_be_removed(i,j,alt)){
             aux[index] = 0;
+
             flag = 1;
           }      
         } 
@@ -145,7 +147,7 @@ int process_file(FILE * fout){
 
 void readPgmFile(FILE * fin, FILE * fout){
   char LINE[30];
-  int i, j, r, temp;
+  int i, j, k, r, temp;
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
@@ -158,7 +160,6 @@ void readPgmFile(FILE * fin, FILE * fout){
   ret = (int *) malloc(width * height * sizeof(int));
   aux = (int *) malloc(width * height * sizeof(int));
   //array simula matrix matrix[i * col + j];
-
 
   printf("%d x %d\nInitializing...\n", width, height);
 
