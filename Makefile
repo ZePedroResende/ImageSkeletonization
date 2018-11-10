@@ -16,7 +16,7 @@ LD  = g++
 #-fopenmp/-openmp for GNU/Intel
 
 
-# CXXFLAGS = -Xpreprocessor -fopenmp -lomp -I"$(brew --prefix libomp)/include" -L"$(brew --prefix libomp)/lib" -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror 
+CXXFLAGS = -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror 
 
 ifeq ($(DEBUG),yes)
 	CXXFLAGS += -ggdb3
@@ -51,13 +51,13 @@ vpath %.cpp $(SRC_DIR)
 .DEFAULT_GOAL = all
 
 $(BUILD_DIR)/%.d: %.cpp
-	$(CXX) -M $(CXXFLAGS) $(INCLUDES) $< -o $@ -lpthread
+	$(CXX) -M $(CXXFLAGS) $(INCLUDES) $< -o $@
 
 $(BUILD_DIR)/%.o: %.cpp
-	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@ -lpthread
+	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@
 
 $(BIN_DIR)/$(BIN_NAME): $(DEPS) $(OBJ)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $(OBJ) -lpthread
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $(OBJ)
 
 checkdirs:
 	@mkdir -p $(BUILD_DIR)

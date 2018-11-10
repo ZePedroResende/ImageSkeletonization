@@ -233,6 +233,7 @@ int output_file(char *in_path, char *out_path){
 
 int process_files(int number_files, char *files[]){
   FILE *fin, *fout;
+  char *out;
 
   Stat buffer = (Stat) malloc(sizeof(struct stat));
 
@@ -245,7 +246,7 @@ int process_files(int number_files, char *files[]){
         exit(1);
       }
 
-      char out[strlen(files[i]) + 4]; 
+      out = (char *) malloc(strlen(files[i]) + 4 * sizeof(char));
       output_file(files[i], out);
       printf("file %s\n", out);
 
