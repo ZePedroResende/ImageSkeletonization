@@ -10,14 +10,18 @@ BIN_NAME = skeleton_seq
 CXX = g++
 LD  = g++
 
+detected_OS := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 #CXX = icpc
 #LD  = icpc
 
 #-fopenmp/-openmp for GNU/Intel
-
-CXXFLAGS = -Xpreprocessor -fopenmp  
+ifeq ($(detected_OS),Darwin)
+	CXXFLAGS = -Xpreprocessor  -fopenmp
+else
+	CXXFLAGS = -lpthread -fopenmp
+endif
 CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror 
-#CXXFLAGS += -lpthread
+#CXXFLAGS += 
 
 ifeq ($(DEBUG),yes)
 	CXXFLAGS += -ggdb3
