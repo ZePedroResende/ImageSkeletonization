@@ -6,16 +6,14 @@
 
 typedef struct stat *Stat;
 
-int ***matrix, width, height, position ;
+int width, height, position, *ret, *aux;
 
 void print_matrix(){
-  for(int k = 0; k< 2; k ++){
-    for(int i = 0; i<height; i++){
-      for(int j =0; j< width; j++){
-        printf("%d\t", matrix[k][i][j]);
-      }
-      printf("\n");
+  for(int i = 0; i<height; i++){
+    for(int j =0; j< width; j++){
+      printf("%d\t", aux[i * width + j]);
     }
+    printf("\n");
   }
 
   printf("\n\n");
@@ -66,36 +64,36 @@ int can_be_removed(int i, int j, int metodo ){
   min_j = j-1 >= 0;
   max_j = j+1 < width;
 
-  temp[0] = matrix[position][i][j];
+  temp[0] = ret[i * width + j];
 
   if(min_i){
-    temp[1] = matrix[position][i-1][j];
+    temp[1] = ret[(i -1) * width + j];
 
     if(min_j){
-      temp[8] = matrix[position][i-1][j-1];
+      temp[8] = ret[(i -1) * width + (j-1)];
     }
 
     if(max_j){
-      temp[2] = matrix[position][i-1][j+1];
+      temp[2] = ret[(i -1) * width + (j+1)];
     }
   }
   if(max_i){
-    temp[5] = matrix[position][i+1][j];
+    temp[5] = ret[(i +1) * width + j];
 
     if(min_j){
-      temp[6] = matrix[position][i+1][j-1];
+      temp[6] = ret[(i +1) * width + (j-1)];
     }
     if(max_j){
-      temp[4] = matrix[position][i+1][j+1];
+      temp[4] = ret[(i +1) * width + (j+1)];
     }
   }
 
   if(min_j){
-    temp[7] = matrix[position][i][j-1];
+    temp[7] = ret[i * width + (j-1)];
   }
 
   if(max_j){
-    temp[3] = matrix[position][i][j+1];
+    temp[3] = ret[i * width + (j+1)];
   }
 
   return i1(temp) &&  i2(temp)  && i3(temp, metodo);  
@@ -106,7 +104,7 @@ int print_output(FILE * fout){
 
   for(i =0; i < height; i++){
     for(j =0; j < width; j++){
-      fprintf(fout, "%d ", matrix[position][i][j]);
+      fprintf(fout, "%d ", ret[i * width + j]);
     }
     fprintf(fout, "\n");
   }
@@ -117,36 +115,25 @@ int print_output(FILE * fout){
 }
 
 void copy_matrix(){
-  int i,j;
-  for(i =0; i < height; i++){
-    for(j =0; j < width; j++){
-
-      matrix[position][i][j] = matrix[!position][i][j];
-    }      
-  }
+  memcpy(ret,aux, width * height * sizeof(int));
 } 
 
 int process_file(FILE * fout){
-  int alt, i, j, acc = 0, flag;
-  position = acc &1;
+  int alt, i, j, index, flag;
   do{
     flag = 0;
     for(alt=0; alt < 2; alt++){
       for(i =0; i < height; i++){
         for(j =0; j < width; j++){
-          if(matrix[position][i][j] && can_be_removed(i,j,alt)){
-            matrix[!position][i][j] = 0;
+          index = i * width +j;
+          if(ret[index] && can_be_removed(i,j,alt)){
+            aux[index] = 0;
             flag = 1;
           }      
         } 
       }
       copy_matrix();
-
-      acc++;
-      position = acc &1;
     }
-
-
   }while(flag);
 
   printf("Writing the output file\n");
@@ -158,7 +145,7 @@ int process_file(FILE * fout){
 
 void readPgmFile(FILE * fin, FILE * fout){
   char LINE[30];
-  int i, j, k, r, temp;
+  int i, j, r, temp;
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
@@ -167,34 +154,22 @@ void readPgmFile(FILE * fin, FILE * fout){
   fprintf(fout, "%d %d\n", width, height);
   printf("%d x %d\nInitializing...\n", width, height);
 
-  /*int matrix[width][weigh];
-    matrix = (int *) malloc(width * height * sizeof(int));
-    array simula matrix matrix[i * col + j];
-    */
+  //int matrix[width][weigh];
+  ret = (int *) malloc(width * height * sizeof(int));
+  aux = (int *) malloc(width * height * sizeof(int));
+  //array simula matrix matrix[i * col + j];
 
-  matrix = (int ***) malloc(2 * sizeof(int **)); 
-  for(k = 0; k < 2; k++){
-    matrix[k] = (int **) malloc(height * sizeof(int *)); 
-  }
-
-  printf("%d x %d\nInitializing...\n", width, height);
-
-  for(k = 0; k < 2; k++){
-    for (i=0; i<height; i++){
-      matrix[k][i] = (int *) malloc(width * sizeof(int)); 
-    }
-  }
 
   printf("%d x %d\nInitializing...\n", width, height);
 
   for(i=0; i < height ; i++){ 
     for(j=0; j < width; j++){ 
       r = fscanf(fin, "%d ", &temp);
-      matrix[0][i][j] = temp;
-      matrix[1][i][j] = temp;
+      aux[(i * width) +j] = temp;
     }
   }
 
+  copy_matrix(); 
   printf("Processing file\n");
 
   process_file(fout);
@@ -233,6 +208,7 @@ int output_file(char *in_path, char *out_path){
 
 int process_files(int number_files, char *files[]){
   FILE *fin, *fout;
+  char *out;
 
   Stat buffer = (Stat) malloc(sizeof(struct stat));
 
@@ -245,7 +221,7 @@ int process_files(int number_files, char *files[]){
         exit(1);
       }
 
-      char out[strlen(files[i]) + 4]; 
+      out =  (char*) malloc(strlen(files[i]) + 4 * sizeof(char)); 
       output_file(files[i], out);
       printf("file %s\n", out);
 
