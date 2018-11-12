@@ -147,11 +147,15 @@ int process_file(FILE * fout){
 
 void readPgmFile(FILE * fin, FILE * fout){
   char LINE[30];
-  int i, j, temp;
+  int i, j, r, temp;
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
-  fscanf(fin, "%d %d", &width, &height);
+  r = fscanf(fin, "%d %d", &width, &height);
+
+  if(r!=0){
+    exit(1);
+  }
 
   fprintf(fout, "%d %d\n", width, height);
   printf("%d x %d\nInitializing...\n", width, height);
@@ -165,7 +169,10 @@ void readPgmFile(FILE * fin, FILE * fout){
 
   for(i=0; i < height ; i++){ 
     for(j=0; j < width; j++){ 
-      fscanf(fin, "%d ", &temp);
+      r = fscanf(fin, "%d ", &temp);
+      if(r!=0){
+        exit(1);
+      }
       aux[(i * width) +j] = temp;
     }
   }
