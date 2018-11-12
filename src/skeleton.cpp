@@ -147,11 +147,11 @@ int process_file(FILE * fout){
 
 void readPgmFile(FILE * fin, FILE * fout){
   char LINE[30];
-  int i, j, r, temp;
+  int i, j, temp;
   fprintf(fout,"%s\n", fgets(LINE, 30, fin));
   skip_comments(fin);
 
-  r = fscanf(fin, "%d %d", &width, &height);
+  fscanf(fin, "%d %d", &width, &height);
 
   fprintf(fout, "%d %d\n", width, height);
   printf("%d x %d\nInitializing...\n", width, height);
@@ -165,7 +165,7 @@ void readPgmFile(FILE * fin, FILE * fout){
 
   for(i=0; i < height ; i++){ 
     for(j=0; j < width; j++){ 
-      r = fscanf(fin, "%d ", &temp);
+      fscanf(fin, "%d ", &temp);
       aux[(i * width) +j] = temp;
     }
   }
@@ -190,7 +190,7 @@ int file_exists(char *file_name, Stat *buffer){
 int output_file(char *in_path, char *out_path){
   char  *dname, *bname, *dirc, *basec;
 
-  *out_path = NULL;
+  //*out_path = NULL;
   dirc = strdup(in_path);
   basec = strdup(in_path);
   dname = dirname(dirc);
