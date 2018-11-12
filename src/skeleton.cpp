@@ -32,8 +32,9 @@ void skip_comments(FILE * pgmFile){
 int i1(int *temp){
   int  res,total = 0;
 
-  for(res = 1; res < 9; res++){
-    total += (temp[res] > 0);
+  //#pragma omp parallel for reduction(+:total)
+  for(res = 0; res < 8; res++){
+    total += (temp[res+1] > 0);
   }
 
   return ((2 <= total) && (total <= 6));
@@ -43,6 +44,8 @@ int i2(int *temp){
   int res,trans = 0;
 
   trans += temp[8] != temp[1];
+
+  //#pragma omp parallel for reduction(+:trans)
   for(res = 2; res < 9 && trans <3 ; res++){
     trans += temp[res-1] != temp[res];
   }
@@ -124,6 +127,7 @@ int process_file(FILE * fout){
   do{
     flag = 0;
     for(alt=0; alt < 2; alt++){
+      #pragma omp parallel for collapse(2) private(index) num_threads(32)
       for(i =0; i < height; i++){
         for(j =0; j < width; j++){
           index = i * width +j;
@@ -153,7 +157,7 @@ void readPgmFile(FILE * fin, FILE * fout){
 
   r = fscanf(fin, "%d %d", &width, &height);
 
-  if(r!=0){
+  if(r<0){
     exit(1);
   }
 
@@ -170,7 +174,7 @@ void readPgmFile(FILE * fin, FILE * fout){
   for(i=0; i < height ; i++){ 
     for(j=0; j < width; j++){ 
       r = fscanf(fin, "%d ", &temp);
-      if(r!=0){
+      if(r<0){
         exit(1);
       }
       aux[(i * width) +j] = temp;

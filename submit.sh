@@ -1,2 +1,2 @@
 #!/bin/sh
-qsub -qmei -lnodes=1:ppn=4:k20,walltime=10:00 ./run.sh
+qsub -v file=$1 -qmei -lnodes=1:ppn=32,walltime=10:00 ./run.sh 
