@@ -20,7 +20,8 @@ ifeq ($(detected_OS),Darwin)
 else
 	CXXFLAGS = -lpthread -fopenmp
 endif
-CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror 
+#CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror 
+CXXFLAGS +=  -ggdb3
 #CXXFLAGS += 
 
 ifeq ($(DEBUG),yes)

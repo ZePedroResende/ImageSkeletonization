@@ -57,49 +57,79 @@ int i3(int *temp, int metodo){
   return ( metodo & 1 ? !temp[3] || !temp[5] || ( !temp[1]  && !temp[7] ) : !temp[1] || !temp[7] || ( !temp[3] && !temp[5] ));
 }
 
-int can_be_removed(int i, int j, int metodo ){
-  int temp[9];
-  memset(temp,0,sizeof(temp));
+int process_temp(int i, int j, int maxi, int metodo, int * temp){
+  int total = 0, trans = 0;
 
-  int min_i, max_i, min_j, max_j;
-  min_i = i-1 >= 0;
-  max_i = i+1 < height;
-  min_j = j-1 >= 0;
-  max_j = j+1 < width;
+  total = (temp[(i-1)*maxi+j] > 0) + (temp[(i-1)*maxi+j+1] > 0) 
+    + (temp[(i*maxi)+j+1] > 0) + (temp[(i+1)*maxi+j+1] > 0) 
+    + (temp[(i+1)*maxi+j] > 0) + (temp[(i+1)*maxi+j-1] > 0) 
+    + (temp[i*maxi+j-1] > 0) + (temp[(i-1)*maxi+j-1] > 0);
 
-  temp[0] = ret[i * width + j];
+  int i1 = ((2 <= total) && (total <= 6));
 
-  if(min_i){
-    temp[1] = ret[(i -1) * width + j];
+  trans += temp[(i-1)*maxi+j-1] != temp[(i-1)*maxi+j];
 
-    if(min_j){
-      temp[8] = ret[(i -1) * width + (j-1)];
-    }
+  trans = (temp[(i-1)*maxi+j] != temp[(i-1)*maxi+j+1]) + (temp[(i-1)*maxi+j+1] != temp[(i*maxi)+j+1])
+    + (temp[(i*maxi)+j+1] != temp[(i+1)*maxi+j+1]) + (temp[(i+1)*maxi+j+1] != temp[(i+1)*maxi+j])
+    + (temp[(i+1)*maxi+j] != temp[(i+1)*maxi+j-1]) + (temp[(i+1)*maxi+j-1] != temp[i*maxi+j-1])
+    + (temp[i*maxi+j-1] != temp[(i-1)*maxi+j-1]) + (temp[(i-1)*maxi+j-1] != temp[(i-1)*maxi+j]);
 
-    if(max_j){
-      temp[2] = ret[(i -1) * width + (j+1)];
+  int i2 = (trans == 2);
+  
+  int i3 = ( metodo & 1 ? !temp[(i*maxi)+j+1] 
+  || !temp[(i+1)*maxi+j] 
+  || ( !temp[(i-1)*maxi+j]  && !temp[i*maxi+j-1] ) : !temp[(i-1)*maxi+j] 
+  || !temp[i*maxi+j-1] 
+  || ( !temp[(i*maxi)+j+1] && !temp[(i+1)*maxi+j] ));
+
+  printf("%d %d %d \n", i1, i2, i3);
+  
+  return i1 && i2 && i3;
+  
+}
+
+int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
+  printf("%d %d %d %d \n", w, maxw, h, maxh);
+
+  int tempwi, tempwf, temphi, temphf, i, j;
+  tempwi = w;
+  tempwf = maxw;
+  temphi = h;
+  temphf = maxh;
+  
+  tempwi--;
+  tempwf++;
+  temphi--;
+  temphf++;
+
+  int intervalow = tempwf-tempwi;
+  int intervaloh = temphf-temphi;
+
+  int* temp = (int *) malloc( (intervaloh) * (intervalow) * sizeof(int) );
+
+  memset(temp,0,(intervaloh) * (intervalow) * sizeof(int));
+
+  j=0;
+
+  for (i=temphi; i<temphf; i++){
+    memcpy(&ret[i*width + tempwi], &temp[j * intervalow], intervalow);
+    j++;
+  }
+
+  int flag = 0;
+
+  for(i=w-temphi; i<maxh-h; i++){
+    for(j=h-tempwi; j<maxw-w; j++){
+      int index = (h + i)*width + (w + j)*height;
+      if(temp[i*intervalow + j] && process_temp(i, j, intervalow, metodo, temp)){
+        aux[index] = 0;
+
+        flag = 1;
+      } 
     }
   }
-  if(max_i){
-    temp[5] = ret[(i +1) * width + j];
 
-    if(min_j){
-      temp[6] = ret[(i +1) * width + (j-1)];
-    }
-    if(max_j){
-      temp[4] = ret[(i +1) * width + (j+1)];
-    }
-  }
-
-  if(min_j){
-    temp[7] = ret[i * width + (j-1)];
-  }
-
-  if(max_j){
-    temp[3] = ret[i * width + (j+1)];
-  }
-
-  return i1(temp) &&  i2(temp)  && i3(temp, metodo);  
+  return flag;
 }
 
 int print_output(FILE * fout){
@@ -122,20 +152,54 @@ void copy_matrix(){
 } 
 
 int process_file(FILE * fout){
-  int alt, i, j, index, flag;
+  int i, j, alt, flag, nbw, nbwr, bw, nbh, nbhr, bh;
+
+  nbw = width/32;
+  nbwr = width%32;
+
+  if(nbwr>0){
+    nbw++;
+    bw = width/nbw;
+  } else{
+    bw = width/nbw;
+  }
+
+  nbh = height/32;
+  nbhr = height%32;
+
+  if(nbhr>0){
+    nbh++;
+    bh = height / nbh;
+  } else{
+    bh = height / nbh;
+  }
+
+  flag=0;
   
   do{
-    flag = 0;
     for(alt=0; alt < 2; alt++){
-      #pragma omp parallel for collapse(2) private(index) num_threads(32)
-      for(i =0; i < height; i++){
-        for(j =0; j < width; j++){
-          index = i * width +j;
+      //#pragma omp parallel for collapse(2) private(index) num_threads(32)
+      for(i =0; i < nbw; i++){
+        for(j =0; j < nbh; j++){
+          if(i==(nbw-1)){
+            if(j==(nbh-1)){
+              flag = can_be_removed(i*bw, width, j*bh, height, alt);
+            }else{
+              flag = can_be_removed(i*bw, width, j*bh, j*bh + bh, alt);
+            }
+          }else{
+            if(j==(nbh-1)){
+              flag = can_be_removed(i*bw, i*bw + bw, j*bh, height, alt);
+            }else{
+              flag = can_be_removed(i*bw, i*bw + bw, j*bh, j*bh +bh, alt);
+            }
+          }
+          /*index = i * width +j;
           if(ret[index] && can_be_removed(i,j,alt)){
             aux[index] = 0;
 
             flag = 1;
-          }      
+          }*/  
         } 
       }
       copy_matrix();
