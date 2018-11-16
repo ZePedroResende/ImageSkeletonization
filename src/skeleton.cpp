@@ -11,7 +11,7 @@ int width, height, position, *ret, *aux;
 void print_matrix(){
   for(int i = 0; i<height; i++){
     for(int j =0; j< width; j++){
-      printf("%d\t", aux[i * width + j]);
+      printf("%d\t", ret[i * width + j]);
     }
     printf("\n");
   }
@@ -91,16 +91,11 @@ int process_temp(int i, int j, int maxi, int metodo, int * temp){
 int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
   printf("%d %d %d %d \n", w, maxw, h, maxh);
 
-  int tempwi, tempwf, temphi, temphf, i, j;
-  tempwi = w;
-  tempwf = maxw;
-  temphi = h;
-  temphf = maxh;
-  
-  tempwi--;
-  tempwf++;
-  temphi--;
-  temphf++;
+  int tempwi, tempwf, temphi, temphf, i, j, x, z;
+  tempwi = w-1;
+  tempwf = maxw+1;
+  temphi = h-1;
+  temphf = maxh+1;
 
   int intervalow = tempwf-tempwi;
   int intervaloh = temphf-temphi;
@@ -108,18 +103,63 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
   int* temp = (int *) malloc( (intervaloh) * (intervalow) * sizeof(int) );
 
   memset(temp,0,(intervaloh) * (intervalow) * sizeof(int));
-
+/*
   j=0;
 
-  for (i=temphi; i<temphf; i++){
+  for (i=(temphi < 0); i<temphf; i++){
     memcpy(&ret[i*width + tempwi], &temp[j * intervalow], intervalow);
     j++;
   }
+*/
+
+  j=temphi < 0;
+  int coluna_inicial = tempwi < 0 + w;
+  int linha_inicial = temphi < 0 + h;
+  int coluna_final = tempwf > width + maxw;
+  int linha_final = temphf > height + maxh;
+ /* for (i=linha_inicial; i<linha_final; i++, j++){
+    memcpy(&temp[j * (linha_final - linha_inicial) + tempwi < 0 + tempwf > maxw], &ret[i*width+coluna_inicial], linha_final - linha_inicial);
+    j++;
+  }*/
+  /*
+  for(i=linha_inicial, z = temphi < 0; i<linha_final; i++, z++){
+    for(j=coluna_inicial, x = tempwi < 0 ; j<coluna_final; j++, x++){
+      temp[z*intervaloh + x]= ret[i*width + j];
+    }
+  }
+
+*/
+int z2 = 0, x2= 0;
+
+  for(z = h, z2 = temphi < 0; z <= maxh; z++, z2++){
+     for(x = w, x2 = 0; x <= maxw; x++, x2++){
+      temp[z * intervalow + x] =  ret[z * width + x];
+     }
+  }
+
+printf("%d %d\n", h, w);
+  for(z = h; z <= maxh; z++){
+     for(x = w; x <= maxw; x++){
+       printf("%d",ret[z * width + x]);
+     }
+     printf("\n");
+  }
+
+printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n");
+
+  for(z = 0; z < (intervaloh) ; z++){
+     for(x = 0; x < intervalow; x++){
+       printf("%d",temp[z * intervalow + x]);
+     }
+     printf("\n");
+  }
+  printf("\n\n\n\n\n\n\n\n\n\n\n\n");
+
 
   int flag = 0;
 
-  for(i=w-temphi; i<maxh-h; i++){
-    for(j=h-tempwi; j<maxw-w; j++){
+  for(i=1; i<maxh-h; i++){
+    for(j=1; j<maxw-w; j++){
       int index = (h + i)*width + (w + j)*height;
       if(temp[i*intervalow + j] && process_temp(i, j, intervalow, metodo, temp)){
         aux[index] = 0;
