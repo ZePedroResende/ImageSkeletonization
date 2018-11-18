@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <libgen.h>
+#include <errno.h>
 
 typedef struct stat *Stat;
 
@@ -89,85 +90,73 @@ int process_temp(int i, int j, int maxi, int metodo, int * temp){
 }
 
 int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
-  printf("%d %d %d %d \n", w, maxw, h, maxh);
 
-  int tempwi, tempwf, temphi, temphf, i, j, x, z;
-  tempwi = w-1;
-  tempwf = maxw+1;
-  temphi = h-1;
-  temphf = maxh+1;
+  // Temp total tamanho total da temp (deve ser +1 em tudo da ativa)
+  int tw, tmaxw, th, tmaxh, tsizew, tsizeh, tsize;
+  // Temp ativa pontos uteis 
+  int aw, amaxw, ah, amaxh, asizew, asizeh, asize;
+  //Temp a preencher a contar com os vizinhos que precisam de ser copiados
+  int pw, pmaxw, ph, pmaxh, psizew, psizeh, psize;
+ 
+  tw = 0;
+  tmaxw = 2 + maxw - w;
+  th = 0;
+  tmaxh = 2 + maxh - h;
+  tsizew = 2 + maxw -w;
+  tsizeh = 2 + maxh - h;
+  tsize = tsizew * tsizeh ;
+  
+  aw  = 1;
+  amaxw = 1 + maxw - w;
+  ah = 1;
+  amaxh = 1 + maxh - h;
+  asizew = 1 + maxw - w;
+  asizeh = 1 + maxh - h;
+  asize = asizew * asizeh;
+ 
+  pw  = !(w> 0);
+  pmaxw = tmaxw - !( maxw < width );
+  ph = !(h> 0);;
+  pmaxh = tmaxh - !(maxh < height);
+  psizew = 1 + pmaxw - pw;
+  psizeh = 1 + pmaxh - ph;
+  psize = psizew * psizeh;
+  
 
-  int intervalow = tempwf-tempwi;
-  int intervaloh = temphf-temphi;
+  int* temp = (int *) malloc( tsize * sizeof(int) );
+  memset(temp,0, tsize * sizeof(int));
+  
 
-  int* temp = (int *) malloc( (intervaloh) * (intervalow) * sizeof(int) );
 
-  memset(temp,0,(intervaloh) * (intervalow) * sizeof(int));
-/*
-  j=0;
-
-  for (i=(temphi < 0); i<temphf; i++){
-    memcpy(&ret[i*width + tempwi], &temp[j * intervalow], intervalow);
-    j++;
-  }
-*/
-
-  j=temphi < 0;
-  int coluna_inicial = tempwi < 0 + w;
-  int linha_inicial = temphi < 0 + h;
-  int coluna_final = tempwf > width + maxw;
-  int linha_final = temphf > height + maxh;
- /* for (i=linha_inicial; i<linha_final; i++, j++){
-    memcpy(&temp[j * (linha_final - linha_inicial) + tempwi < 0 + tempwf > maxw], &ret[i*width+coluna_inicial], linha_final - linha_inicial);
-    j++;
-  }*/
-  /*
-  for(i=linha_inicial, z = temphi < 0; i<linha_final; i++, z++){
-    for(j=coluna_inicial, x = tempwi < 0 ; j<coluna_final; j++, x++){
-      temp[z*intervaloh + x]= ret[i*width + j];
+//ta mal apartir daqui
+  for(int i = th,x=resh ; i<tsizeh; i++, x= 0){
+    for(int j = tw, y = resw; j<tsizew; j++, y=0){
+      temp[i * tsizew + j] = ret[x * width + y]; 
     }
   }
 
-*/
-int z2 = 0, x2= 0;
+  print_matrix();
 
-  for(z = h, z2 = temphi < 0; z <= maxh; z++, z2++){
-     for(x = w, x2 = 0; x <= maxw; x++, x2++){
-      temp[z * intervalow + x] =  ret[z * width + x];
-     }
+  for(int i = th,x=resh ; i<tsizeh; i++, x= 0){
+    for(int j = tw, y = resw; j<tsizew; j++, y=0){
+     printf("(%d,%d)\t", temp[i * tsizew + j] ,ret[x * width + y]) ;
+    }
+    printf("\n"); 
   }
+  int index, flag;
 
-printf("%d %d\n", h, w);
-  for(z = h; z <= maxh; z++){
-     for(x = w; x <= maxw; x++){
-       printf("%d",ret[z * width + x]);
-     }
-     printf("\n");
-  }
-
-printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n\n");
-
-  for(z = 0; z < (intervaloh) ; z++){
-     for(x = 0; x < intervalow; x++){
-       printf("%d",temp[z * intervalow + x]);
-     }
-     printf("\n");
-  }
-  printf("\n\n\n\n\n\n\n\n\n\n\n\n");
-
-
-  int flag = 0;
-
-  for(i=1; i<maxh-h; i++){
-    for(j=1; j<maxw-w; j++){
-      int index = (h + i)*width + (w + j)*height;
-      if(temp[i*intervalow + j] && process_temp(i, j, intervalow, metodo, temp)){
+  flag =0;
+  for(int i = ah,x=h ; i<asizeh; i++, x= 0){
+    for(int j = aw, y = w; j<asizew; j++, y=0){
+      index = x * width + y;
+      if(temp[i * tsizew + j] && process_temp(i,j,tsizew,metodo,temp)){
         aux[index] = 0;
-
-        flag = 1;
+        flag=1;
+        
       } 
     }
   }
+  
 
   return flag;
 }
@@ -194,27 +183,24 @@ void copy_matrix(){
 int process_file(FILE * fout){
   int i, j, alt, flag, nbw, nbwr, bw, nbh, nbhr, bh;
 
+  flag =0;
+
   nbw = width/32;
   nbwr = width%32;
 
   if(nbwr>0){
     nbw++;
-    bw = width/nbw;
-  } else{
-    bw = width/nbw;
   }
+  bw = width/nbw;
 
   nbh = height/32;
   nbhr = height%32;
 
   if(nbhr>0){
     nbh++;
-    bh = height / nbh;
-  } else{
-    bh = height / nbh;
   }
 
-  flag=0;
+  bh = height / nbh;
   
   do{
     for(alt=0; alt < 2; alt++){
@@ -275,6 +261,7 @@ void readPgmFile(FILE * fin, FILE * fout){
 
   printf("%d x %d\nInitializing...\n", width, height);
 
+  
   for(i=0; i < height ; i++){ 
     for(j=0; j < width; j++){ 
       r = fscanf(fin, "%d ", &temp);
@@ -305,7 +292,7 @@ int file_exists(char *file_name, Stat *buffer){
 int output_file(char *in_path, char *out_path){
   char  *dname, *bname, *dirc, *basec;
 
-  //*out_path = NULL;
+ *out_path = NULL;
   dirc = strdup(in_path);
   basec = strdup(in_path);
   dname = dirname(dirc);
