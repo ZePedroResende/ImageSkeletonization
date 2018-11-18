@@ -125,33 +125,45 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
 
   int* temp = (int *) malloc( tsize * sizeof(int) );
   memset(temp,0, tsize * sizeof(int));
-  
-
 
 //ta mal apartir daqui
-  for(int i = th,x=resh ; i<tsizeh; i++, x= 0){
-    for(int j = tw, y = resw; j<tsizew; j++, y=0){
-      temp[i * tsizew + j] = ret[x * width + y]; 
+  for(int i = th, x=h-1 ; i<tsizeh; i++, x++){
+    for(int j = tw, y = w-1; j<tsizew; j++, y++){
+      temp[i * tsizew + j] = ret[x * width + y];
     }
   }
 
-  print_matrix();
-
-  for(int i = th,x=resh ; i<tsizeh; i++, x= 0){
-    for(int j = tw, y = resw; j<tsizew; j++, y=0){
-     printf("(%d,%d)\t", temp[i * tsizew + j] ,ret[x * width + y]) ;
+  //print_matrix();
+  
+/*
+  for(int x=h-1 ; x<maxh+1; x++){
+    for(int y = w-1; y<maxw+1; y++){
+      printf("%d", ret[x * width + y]);
     }
-    printf("\n"); 
+    printf("\n");
   }
+
+  printf("\n\n\n");
+
+  for(int i = th; i<tsizeh; i++){
+    for(int j = tw; j<tsizew; j++){
+      printf("%d", temp[i * tsizew + j]);
+    }
+    printf("\n");
+  }
+
+  printf("\n\n\n\n--------------------------------------------------");
+*/
   int index, flag;
 
   flag =0;
-  for(int i = ah,x=h ; i<asizeh; i++, x= 0){
-    for(int j = aw, y = w; j<asizew; j++, y=0){
+  for(int i = ah,x=h ; i<asizeh; i++, x++){
+    for(int j = aw, y = w; j<asizew; j++, y++){
       index = x * width + y;
       if(temp[i * tsizew + j] && process_temp(i,j,tsizew,metodo,temp)){
         aux[index] = 0;
         flag=1;
+        printf("%d\n", flag);
         
       } 
     }
@@ -203,6 +215,7 @@ int process_file(FILE * fout){
   bh = height / nbh;
   
   do{
+    flag=0;
     for(alt=0; alt < 2; alt++){
       //#pragma omp parallel for collapse(2) private(index) num_threads(32)
       for(i =0; i < nbw; i++){
