@@ -126,9 +126,11 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
   memset(temp,0, tsize * sizeof(int));
 
 //ta mal apartir daqui
-  for(int i = th, x=h-1 ; i<tsizeh; i++, x++){
-    for(int j = tw, y = w-1; j<tsizew; j++, y++){
-      temp[i * tsizew + j] = ret[x * width + y];
+  for(int i = th, x=  h-1 ; i<tsizeh; i++, x++){
+    for(int j = tw, y = w-1  ; j<tsizew; j++, y++){
+      if(x >= 0 && x <= height && y <= width && y >= 0){
+        temp[i * tsizew + j] = ret[x * width + y] ;
+      }
     }
   }
 
@@ -146,7 +148,8 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
     }
   }
   
-  free(temp);
+  //free(temp);
+
   return flag;
 }
 
@@ -190,13 +193,14 @@ int process_file(FILE * fout){
   }
 
   bh = height / nbh;
-  
+
   do{
     flag=0;
     for(alt=0; alt < 2; alt++){
-      //#pragma omp parallel for collapse(2) private(index) num_threads(32)
       for(i =0; i < nbw; i++){
+        #pragma omp parallel for
         for(j =0; j < nbh; j++){
+          //printf("iteracao %d (%d,%d) (%d,%d)\n", alt, i, nbw,  j, nbh);
           if(i==(nbw-1)){
             if(j==(nbh-1)){
               if(can_be_removed(i*bw, width, j*bh, height, alt)) flag=1 ;
@@ -207,18 +211,18 @@ int process_file(FILE * fout){
             if(j==(nbh-1)){
               if(can_be_removed(i*bw, i*bw + bw, j*bh, height, alt)) flag=1 ;
             }else{
+              //printf("iteracao %d (%d,%d) (%d,%d) %d\n", height, i, nbw,  j, nbh, bh);
+              //printf("(w:%d, maxw:%d, h:%d, maxh:%d )", i*bw, i*bw + bw, j*bh, j*bh +bh);
               if(can_be_removed(i*bw, i*bw + bw, j*bh, j*bh +bh, alt)) flag=1 ;
             }
           }
-          /*index = i * width +j;
-          if(ret[index] && can_be_removed(i,j,alt)){
-            aux[index] = 0;
-
-            flag = 1;
-          }*/  
         } 
+
       }
+
       copy_matrix();
+
+    //printf("iteracao %d\n", iteracao++);
     }
   }while(flag);
 
