@@ -83,7 +83,6 @@ int process_temp(int i, int j, int maxi, int metodo, int * temp){
   || !temp[i*maxi+j-1] 
   || ( !temp[(i*maxi)+j+1] && !temp[(i+1)*maxi+j] ));
 
-  printf("%d %d %d \n", i1, i2, i3);
   
   return i1 && i2 && i3;
   
@@ -133,27 +132,7 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
     }
   }
 
-  //print_matrix();
   
-/*
-  for(int x=h-1 ; x<maxh+1; x++){
-    for(int y = w-1; y<maxw+1; y++){
-      printf("%d", ret[x * width + y]);
-    }
-    printf("\n");
-  }
-
-  printf("\n\n\n");
-
-  for(int i = th; i<tsizeh; i++){
-    for(int j = tw; j<tsizew; j++){
-      printf("%d", temp[i * tsizew + j]);
-    }
-    printf("\n");
-  }
-
-  printf("\n\n\n\n--------------------------------------------------");
-*/
   int index, flag;
 
   flag =0;
@@ -163,13 +142,11 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
       if(temp[i * tsizew + j] && process_temp(i,j,tsizew,metodo,temp)){
         aux[index] = 0;
         flag=1;
-        printf("%d\n", flag);
-        
       } 
     }
   }
   
-
+  free(temp);
   return flag;
 }
 
@@ -222,15 +199,15 @@ int process_file(FILE * fout){
         for(j =0; j < nbh; j++){
           if(i==(nbw-1)){
             if(j==(nbh-1)){
-              flag = can_be_removed(i*bw, width, j*bh, height, alt);
+              if(can_be_removed(i*bw, width, j*bh, height, alt)) flag=1 ;
             }else{
-              flag = can_be_removed(i*bw, width, j*bh, j*bh + bh, alt);
+              if(can_be_removed(i*bw, width, j*bh, j*bh + bh, alt)) flag=1;
             }
           }else{
             if(j==(nbh-1)){
-              flag = can_be_removed(i*bw, i*bw + bw, j*bh, height, alt);
+              if(can_be_removed(i*bw, i*bw + bw, j*bh, height, alt)) flag=1 ;
             }else{
-              flag = can_be_removed(i*bw, i*bw + bw, j*bh, j*bh +bh, alt);
+              if(can_be_removed(i*bw, i*bw + bw, j*bh, j*bh +bh, alt)) flag=1 ;
             }
           }
           /*index = i * width +j;
