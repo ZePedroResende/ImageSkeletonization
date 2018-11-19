@@ -93,36 +93,20 @@ int process_temp(int i, int j, int maxw, int metodo, int * temp){
 int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
 
   // Temp total tamanho total da temp (deve ser +1 em tudo da ativa)
-  int tw, tmaxw, th, tmaxh, tsizew, tsizeh, tsize;
+  int tw, th, tsizew, tsizeh, tsize;
   // Temp ativa pontos uteis 
-  int aw, amaxw, ah, amaxh, asizew, asizeh, asize;
-  //Temp a preencher a contar com os vizinhos que precisam de ser copiados
-  int pw, pmaxw, ph, pmaxh, psizew, psizeh, psize;
+  int aw, ah, asizew, asizeh;
  
   tw = 0;
-  tmaxw = 2 + maxw - w;
   th = 0;
-  tmaxh = 2 + maxh - h;
   tsizew = 2 + maxw -w;
   tsizeh = 2 + maxh - h;
   tsize = tsizew * tsizeh ;
   
   aw  = 1;
-  amaxw = 1 + maxw - w;
   ah = 1;
-  amaxh = 1 + maxh - h;
   asizew = 1 + maxw - w;
   asizeh = 1 + maxh - h;
-  asize = asizew * asizeh;
- 
-  pw  = !(w> 0);
-  pmaxw = tmaxw - !( maxw < width );
-  ph = !(h> 0);;
-  pmaxh = tmaxh - !(maxh < height);
-  psizew = 1 + pmaxw - pw;
-  psizeh = 1 + pmaxh - ph;
-  psize = psizew * psizeh;
-  
 
   int* temp = (int *) malloc( tsize * sizeof(int) );
   memset(temp,0, tsize * sizeof(int));
@@ -139,17 +123,30 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
   
   int index, flag;
 
-  flag =0;
-  for(int i = ah,x=h ; i<asizeh; i++, x++){
-    for(int j = aw, y = w; j<asizew; j++, y++){
-      index = x * width + y;
-      if(temp[i * tsizew + j] && process_temp(i,j,tsizew,metodo,temp)){
+  flag =0;  
+
+  int imax = asizeh - ah;
+  int jmax = asizew - aw;
+  int loopi, loopj;
+  //int loop;
+
+  for(int i =0 ; i < imax; i++){
+    for(int j = 0 ; j < jmax; j++){
+      index = (h + i) * width + w + j;
+      loopi = ah + i;
+      loopj = aw + j;
+   /*   loop = (temp[loopi * tsizew + loopj] && process_temp(loopi,loopj,tsizew,metodo,temp));
+      flag += loop;
+      if(loop) aux[index] = 0;*/
+
+      if(temp[loopi * tsizew + loopj] && process_temp(loopi,loopj,tsizew,metodo,temp)){
         aux[index] = 0;
         flag=1;
       } 
     }
   }
-  
+
+
   free(temp);
 
   return flag;
@@ -200,7 +197,7 @@ int process_file(FILE * fout){
     flag=0;
     for(alt=0; alt < 2; alt++){
       for(i =0; i < nbw; i++){
-        //#pragma omp parallel for 
+        #pragma omp parallel for 
         for(j =0; j < nbh; j++){
           if(i==(nbw-1)){
             if(j==(nbh-1)){
@@ -285,7 +282,7 @@ int file_exists(char *file_name, Stat *buffer){
 int output_file(char *in_path, char *out_path){
   char  *dname, *bname, *dirc, *basec;
 
- *out_path = NULL;
+  *out_path = '\0';
   dirc = strdup(in_path);
   basec = strdup(in_path);
   dname = dirname(dirc);
