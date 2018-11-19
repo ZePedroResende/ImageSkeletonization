@@ -58,30 +58,32 @@ int i3(int *temp, int metodo){
   return ( metodo & 1 ? !temp[3] || !temp[5] || ( !temp[1]  && !temp[7] ) : !temp[1] || !temp[7] || ( !temp[3] && !temp[5] ));
 }
 
-int process_temp(int i, int j, int maxi, int metodo, int * temp){
+int process_temp(int i, int j, int maxw, int metodo, int * temp){
   int total = 0, trans = 0;
+  int indexs[8] = {(i-1)*maxw+j, (i-1)*maxw+j+1, (i*maxw)+j+1, 
+                  (i+1)*maxw+j+1, (i+1)*maxw+j, (i+1)*maxw+j-1, 
+                  i*maxw+(j-1), (i-1)*maxw+j-1};
 
-  total = (temp[(i-1)*maxi+j] > 0) + (temp[(i-1)*maxi+j+1] > 0) 
-    + (temp[(i*maxi)+j+1] > 0) + (temp[(i+1)*maxi+j+1] > 0) 
-    + (temp[(i+1)*maxi+j] > 0) + (temp[(i+1)*maxi+j-1] > 0) 
-    + (temp[i*maxi+j-1] > 0) + (temp[(i-1)*maxi+j-1] > 0);
+  total = temp[indexs[0]] + temp[indexs[1]]  
+    + temp[indexs[2]] + temp[indexs[3]]
+    + temp[indexs[4]] + temp[indexs[5]] 
+    + temp[indexs[6]] + temp[indexs[7]];
 
   int i1 = ((2 <= total) && (total <= 6));
 
-  trans += temp[(i-1)*maxi+j-1] != temp[(i-1)*maxi+j];
 
-  trans = (temp[(i-1)*maxi+j] != temp[(i-1)*maxi+j+1]) + (temp[(i-1)*maxi+j+1] != temp[(i*maxi)+j+1])
-    + (temp[(i*maxi)+j+1] != temp[(i+1)*maxi+j+1]) + (temp[(i+1)*maxi+j+1] != temp[(i+1)*maxi+j])
-    + (temp[(i+1)*maxi+j] != temp[(i+1)*maxi+j-1]) + (temp[(i+1)*maxi+j-1] != temp[i*maxi+j-1])
-    + (temp[i*maxi+j-1] != temp[(i-1)*maxi+j-1]) + (temp[(i-1)*maxi+j-1] != temp[(i-1)*maxi+j]);
+  trans = (temp[indexs[0]] != temp[indexs[1]]) + (temp[indexs[1]] != temp[indexs[2]])
+    + (temp[indexs[2]] != temp[indexs[3]]) + (temp[indexs[3]] != temp[indexs[4]])
+    + (temp[indexs[4]] != temp[indexs[5]]) + (temp[indexs[5]] != temp[indexs[6]])
+    + (temp[indexs[6]] != temp[indexs[7]]) + (temp[indexs[7]] != temp[indexs[0]]);
 
   int i2 = (trans == 2);
   
-  int i3 = ( metodo & 1 ? !temp[(i*maxi)+j+1] 
-  || !temp[(i+1)*maxi+j] 
-  || ( !temp[(i-1)*maxi+j]  && !temp[i*maxi+j-1] ) : !temp[(i-1)*maxi+j] 
-  || !temp[i*maxi+j-1] 
-  || ( !temp[(i*maxi)+j+1] && !temp[(i+1)*maxi+j] ));
+  int i3 = ( metodo & 1 ? !temp[indexs[2]] 
+  || !temp[indexs[4]] 
+  || ( !temp[indexs[0]]  && !temp[indexs[6]] ) : !temp[indexs[0]] 
+  || !temp[indexs[6]] 
+  || ( !temp[indexs[2]] && !temp[indexs[4]] ));
 
   
   return i1 && i2 && i3;
@@ -148,7 +150,7 @@ int can_be_removed(int w, int maxw, int h, int maxh, int metodo ){
     }
   }
   
-  //free(temp);
+  free(temp);
 
   return flag;
 }
@@ -198,9 +200,8 @@ int process_file(FILE * fout){
     flag=0;
     for(alt=0; alt < 2; alt++){
       for(i =0; i < nbw; i++){
-        #pragma omp parallel for
+        //#pragma omp parallel for 
         for(j =0; j < nbh; j++){
-          //printf("iteracao %d (%d,%d) (%d,%d)\n", alt, i, nbw,  j, nbh);
           if(i==(nbw-1)){
             if(j==(nbh-1)){
               if(can_be_removed(i*bw, width, j*bh, height, alt)) flag=1 ;
@@ -211,8 +212,6 @@ int process_file(FILE * fout){
             if(j==(nbh-1)){
               if(can_be_removed(i*bw, i*bw + bw, j*bh, height, alt)) flag=1 ;
             }else{
-              //printf("iteracao %d (%d,%d) (%d,%d) %d\n", height, i, nbw,  j, nbh, bh);
-              //printf("(w:%d, maxw:%d, h:%d, maxh:%d )", i*bw, i*bw + bw, j*bh, j*bh +bh);
               if(can_be_removed(i*bw, i*bw + bw, j*bh, j*bh +bh, alt)) flag=1 ;
             }
           }
