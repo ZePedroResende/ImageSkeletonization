@@ -1,0 +1,13 @@
+rm -f build/* bin/*
+rm images/out_*
+g++ -M -lpthread -fopenmp -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror   src/skeleton.cpp -o build/skeleton.d 
+g++ -c -lpthread -fopenmp -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror   src/skeleton.cpp -o build/skeleton.o 
+g++ -lpthread -fopenmp -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror   -o bin/skeleton_seq build/skeleton.o 
+file images/out_seahorse.ascii.pbm
+2225 x 3601
+Initializing...
+2225 x 3601
+Initializing...
+Processing file
+Writing the output file
+Skeleton done!That's all folks !

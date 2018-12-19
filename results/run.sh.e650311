@@ -1,9 +1,0 @@
-icpc: remark #10397: optimization reports are generated in *.optrpt files in the output location
-icpc: remark #10397: optimization reports are generated in *.optrpt files in the output location
-remark #11074: Inlining inhibited by limit max-size 
-remark #11076: To get full report use -qopt-report=4 -qopt-report-phase ipo
-icpc: remark #10397: optimization reports are generated in *.optrpt files in the output location
-
-real	0m21.385s
-user	5m7.905s
-sys	0m6.791s
