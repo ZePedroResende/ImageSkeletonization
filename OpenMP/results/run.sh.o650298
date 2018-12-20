@@ -1,0 +1,14 @@
+rm -f build/* bin/*
+rm images/out_*
+icpc -M -lpthread -fopenmp -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror  -qopt-report3 -qopt-report-phase=vec  src/skeleton.cpp -o build/skeleton.d 
+
+icpc -c -lpthread -fopenmp -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror  -qopt-report3 -qopt-report-phase=vec  src/skeleton.cpp -o build/skeleton.o 
+icpc -lpthread -fopenmp -O3 -Wall -Wextra -std=c++11 -Wno-unused-parameter -pedantic -Werror  -qopt-report3 -qopt-report-phase=vec  -o bin/skeleton_seq build/skeleton.o 
+file images/out_seahorse.ascii.pbm
+2225 x 3601
+Initializing...
+2225 x 3601
+Initializing...
+Processing file
+Writing the output file
+Skeleton done!That's all folks !
