@@ -9,13 +9,13 @@
 typedef struct stat *Stat;
 
 int position, nh, *aux, *matrix, *linha;
-int width, height, h;
+int width, height, h, height_process;
 int* ret;
 char *out;
 char LINE[30];
 
 void print_matrix(){
-  for(int i = 0; i<height; i++){
+  for(int i = 0; i<height_process; i++){
     for(int j =0; j< width; j++){
       printf("%d\t", ret[i * width + j]);
     }
@@ -66,10 +66,10 @@ int can_be_removed(int i, int j, int metodo ){
 
   int min_i, max_i, min_j, max_j;
   min_i = i-1 >= 0;
-  max_i = i+1 < height;
+  max_i = i+1 < height_process;
   min_j = j-1 >= 0;
   max_j = j+1 < width;
-
+  
   temp[0] = matrix[i * width + j];
 
   if(min_i){
@@ -109,12 +109,7 @@ int can_be_removed(int i, int j, int metodo ){
 int print_output_last(int rank, FILE *fout){
   int i, j;
 
-  int hi = rank * h;
-  int hf = height-hi;
-
-  printf("Printing last process!\n");
-
-  for(i =1; i < nh; i++){
+  for(i =1; i < nh+1; i++){
     for(j =0; j < width; j++){
       fprintf(fout, "%d ", matrix[i * width + j]);
     }
@@ -169,7 +164,7 @@ int process_file_last(FILE * fout, int rank, int size){
   flag = 0;
   
   for(alt=0; alt < 2; alt++){
-    for(i = 1; i < nh; i++){
+    for(i = 1; i < nh+1; i++){
       for(j =0; j < width; j++){
         index = i * width +j;
         if(matrix[index] && can_be_removed(i,j,alt)){
@@ -378,6 +373,7 @@ int main(int argc, char *argv[]){
   printf("rank: %d, width: %d, height: %d, h: %d\n", rank, width, height, h);
 
   if (rank == 0) {
+    height_process = h+1;
     free(aux);
 
     //Copy the first h+1 lines to the process 0's matrix and aux
@@ -399,7 +395,7 @@ int main(int argc, char *argv[]){
         linha[0]==2 ? flagr=0 : flagr=1;
 
         if(flagr){
-          memcpy( &matrix[h], linha, width * sizeof(int));
+          memcpy( &matrix[h*width], linha, width * sizeof(int));
         }
         
         memset(linha, 0, width * sizeof(int));
@@ -410,7 +406,7 @@ int main(int argc, char *argv[]){
 
       if(flagr){
 
-        memcpy( linha, &matrix[h-1], width * sizeof(int));
+        memcpy( linha, &matrix[(h-1)*width], width * sizeof(int));
         MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
         memset(linha, 0, width * sizeof(int));
 
@@ -435,6 +431,7 @@ int main(int argc, char *argv[]){
     int hi = rank * h;
     //Calculate how many lines will the last process iterate
     nh = height - hi; 
+    height_process = nh + 1;
 
     //Copy the last nh lines to the last process' matrix and aux
     aux = (int *) malloc(width * (nh+1) * sizeof(int));
@@ -458,7 +455,7 @@ int main(int argc, char *argv[]){
 
           memcpy( matrix, linha, width * sizeof(int));
           memset(linha, 0, width * sizeof(int));
-          memcpy( linha, &matrix[1], width * sizeof(int));
+          memcpy( linha, &matrix[width], width * sizeof(int));
           MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
           
         }
@@ -486,6 +483,7 @@ int main(int argc, char *argv[]){
 
   }else{
     int hi = rank * h;
+    height_process = h + 2;
 
     //Copy the respective h+2 lines to the process #rank's matrix and aux
     aux = (int *) malloc(width * (h+2) * sizeof(int));
@@ -517,7 +515,7 @@ int main(int argc, char *argv[]){
         linha[0]==2 ? flagr2=0 : flagr2=1;
         
         if(flagr2){
-          memcpy( &matrix[h+1], linha, width * sizeof(int));
+          memcpy( &matrix[(h+1)*width], linha, width * sizeof(int));
         }
 
         memset(linha, 0, width * sizeof(int));
@@ -527,7 +525,7 @@ int main(int argc, char *argv[]){
       flag = process_file(fout, rank, size);
       if(flagr1){
 
-        memcpy( linha, &matrix[1], width * sizeof(int));
+        memcpy( linha, &matrix[width], width * sizeof(int));
         MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
         memset(linha, 0, width * sizeof(int));
 
@@ -535,7 +533,7 @@ int main(int argc, char *argv[]){
 
       if(flagr2){ 
 
-        memcpy( linha, &matrix[h], width * sizeof(int));
+        memcpy( linha, &matrix[h*width], width * sizeof(int));
         MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
         memset(linha, 0, width * sizeof(int));
 
@@ -565,13 +563,14 @@ int main(int argc, char *argv[]){
     fprintf(fout,"%s\n", LINE);
     fprintf(fout, "%d %d\n", width, height);
 
-    print_output_init(fout);
+    //print_output_init(fout);
 
     msg=rank;
     int i;
 
     free(matrix);
     matrix = (int *) malloc(width * (h+2) * sizeof(int)); 
+
     for(i=1; i < size-1; i++){
 
       MPI_Ssend( &msg, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
@@ -587,9 +586,9 @@ int main(int argc, char *argv[]){
     MPI_Ssend( &msg, 1, MPI_INT, size-1, 0, MPI_COMM_WORLD);
     MPI_Recv( &nh, 1, MPI_INT, size-1, 0, MPI_COMM_WORLD, &status);
 
-    matrix = (int *) malloc(width * (nh+1) * sizeof(int)); 
+    matrix = (int *) malloc(width * (nh+1) * sizeof(int));
 
-    MPI_Recv( matrix, width * (nh-1), MPI_INT, size-1, 0, MPI_COMM_WORLD, &status );
+    MPI_Recv( matrix, width * (nh+1), MPI_INT, size-1, 0, MPI_COMM_WORLD, &status );
 
     printf("\n\n\n\n\n PRINTING LAST ONE \n\n\n\n\n");
 
@@ -601,12 +600,12 @@ int main(int argc, char *argv[]){
 
     MPI_Recv( &msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status );
     MPI_Ssend( &nh, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    MPI_Ssend( matrix, width * (nh-1), MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Ssend( matrix, width * (nh+1), MPI_INT, 0, 0, MPI_COMM_WORLD);
 
   }else{
 
     MPI_Recv( &msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status );
-    MPI_Ssend( matrix, (h+1) * width, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Ssend( matrix, (h+2) * width, MPI_INT, 0, 0, MPI_COMM_WORLD);
 
   }
   
