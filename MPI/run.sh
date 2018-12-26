@@ -1,6 +1,6 @@
 #!/bin/bash
-module load gcc/5.3.0
-cd $HOME/CPD/PCP/Trabalho
+module load gnu/openmpi-eth/1.8.4
+cd $HOME/CPD/PCP/MPI
 make clean
 make
-./bin/skeleton_seq images/${file}.pbm
+mpirun -np 48 -mca btl self,sm,tcp /bin/skeleton_mpi images/${file}.pbm
