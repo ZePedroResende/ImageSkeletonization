@@ -9,7 +9,7 @@
 typedef struct stat *Stat;
 
 int position, nh, *aux, *matrix, *linha;
-int width, height, h, height_process;
+int width, height, h, height_process, flag_global;
 int* ret;
 char *out;
 char LINE[30];
@@ -159,11 +159,10 @@ void copy_matrix_mpi(int lines){
   memcpy( matrix, aux, width * lines * sizeof(int));
 }
 
-int process_file_last(FILE * fout, int rank, int size){
-  int alt, i, j, index, flag;
+int process_file_last(int alt){
+  int i, j, index, flag;
   flag = 0;
   
-  for(alt=0; alt < 2; alt++){
     for(i = 1; i < nh+1; i++){
       for(j =0; j < width; j++){
         index = i * width +j;
@@ -175,17 +174,14 @@ int process_file_last(FILE * fout, int rank, int size){
       } 
     }
     copy_matrix_mpi(nh+1);
-  }
-
-  printf("finishing rank: %d fim: %d \n", rank, nh+1);
 
   return flag;
 }
 
-int process_file(FILE * fout, int rank, int size){
-  int alt, i, j, index, flag;
+int process_file(int alt){
+  int i, j, index, flag;
   flag = 0;
-  for(alt=0; alt < 2; alt++){
+
     for(i = 1; i < h+1; i++){
       for(j =0; j < width; j++){
         index = i * width +j;
@@ -197,18 +193,14 @@ int process_file(FILE * fout, int rank, int size){
       } 
     }
     copy_matrix_mpi(h+2);
-  }
-
-  printf("finishing rank: %d fim: %d \n", rank, h+1);
 
   return flag;
 }
 
-int process_file_init(FILE * fout, int rank, int size){
-  int alt, i, j, index, flag;
+int process_file_init(int alt){
+  int i, j, index, flag;
   flag = 0;
 
-  for(alt=0; alt < 2; alt++){
     for(i = 0; i < h; i++){
       for(j =0; j < width; j++){
         index = i * width +j;
@@ -220,9 +212,6 @@ int process_file_init(FILE * fout, int rank, int size){
       } 
     }
     copy_matrix_mpi(h+1);
-  }
-
-  printf("finishing rank: %d fim: %d \n", rank, h);
 
   return flag;
 }
@@ -382,50 +371,48 @@ int main(int argc, char *argv[]){
     memcpy( matrix, ret, width * (h+1) * sizeof(int));
     memcpy( aux, ret, width * (h+1) * sizeof(int));
 
+    int flag1 = 0;
+    int flag2 = 0;
     int flag = 0;
-    int flagr = 1;
+
     do {
       
       //flag: check if its the first iteration
       //flagr: check if the process #rank+1 terminated
-      if (flag && flagr) {
-
-        MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
-
-        linha[0]==2 ? flagr=0 : flagr=1;
-
-        if(flagr){
-          memcpy( &matrix[h*width], linha, width * sizeof(int));
-        }
-        
-        memset(linha, 0, width * sizeof(int));
-
-      }
-
-      flag = process_file_init(fout, rank, size);
-
-      if(flagr){
+      if (flag) {
 
         memcpy( linha, &matrix[(h-1)*width], width * sizeof(int));
         MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
         memset(linha, 0, width * sizeof(int));
+        MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
+        memcpy( &matrix[h*width], linha, width * sizeof(int));
+        memset(linha, 0, width * sizeof(int));
 
       }
+
+      flag1 = process_file_init(0);
+
+      memcpy( linha, &matrix[(h-1)*width], width * sizeof(int));
+      MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
+      memset(linha, 0, width * sizeof(int));
+      MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
+      memcpy( &matrix[h*width], linha, width * sizeof(int));
+      memset(linha, 0, width * sizeof(int));
+
+      flag2 = process_file_init(1);
+
+      flag = (flag1 || flag2);
+
+      MPI_Reduce( &flag, &flag_global, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+      if(!flag_global){
+        flag=0;
+      }else{
+        flag=1;
+      }
+
+      MPI_Bcast( &flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     }while(flag);
-
-    //send the first int=2 to show that this process terminated
-    if(flagr){
-
-      MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
-
-      if(flagr){
-        memset(linha, 0, width * sizeof(int));
-        linha[0]=2;
-        MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
-      }
-
-    }
 
   }else if (rank == size-1 ) {
     int hi = rank * h;
@@ -434,52 +421,47 @@ int main(int argc, char *argv[]){
     height_process = nh + 1;
 
     //Copy the last nh lines to the last process' matrix and aux
-    aux = (int *) malloc(width * (nh+1) * sizeof(int));
-    matrix = (int *) malloc(width * (nh+1) * sizeof(int)); 
-    memcpy( matrix, &ret[hi-1], width * (nh+1) * sizeof(int));
-    memcpy( aux, &ret[hi-1], width * (nh+1) * sizeof(int));
+    aux = (int *) malloc(width * height_process * sizeof(int));
+    matrix = (int *) malloc(width * height_process * sizeof(int)); 
+    memcpy( matrix, &ret[(hi-2) * width], width * height_process * sizeof(int));
+    memcpy( aux, &ret[(hi-2) * width], width * height_process * sizeof(int));
 
     int flag = 0;
-    int flagr = 1;
+    int flag1 = 0;
+    int flag2 = 0;
 
     do {
 
       //check if its the first iteration
-      if (flag && flagr){
+      if (flag){
 
         MPI_Recv( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &status );
-        
-        linha[0]==2 ? flagr=0 : flagr=1;
-
-        if(flagr){
-
-          memcpy( matrix, linha, width * sizeof(int));
-          memset(linha, 0, width * sizeof(int));
-          memcpy( linha, &matrix[width], width * sizeof(int));
-          MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
-          
-        }
-
-          memset(linha, 0, width * sizeof(int));
+        memcpy( matrix, linha, width * sizeof(int));
+        memset(linha, 0, width * sizeof(int));
+        memcpy( linha, &matrix[width], width * sizeof(int));
+        MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
+        memset(linha, 0, width * sizeof(int));
         
       } 
+      
+      flag1 = process_file_last(0);
 
-      flag = process_file_last(fout, rank, size);
+      MPI_Recv( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &status );
+      memcpy( matrix, linha, width * sizeof(int));
+      memset(linha, 0, width * sizeof(int));
+      memcpy( linha, &matrix[width], width * sizeof(int));
+      MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
+      memset(linha, 0, width * sizeof(int));
+        
+      
+      flag2 = process_file_last(1);
+
+      flag = (flag1 || flag2);
+
+      MPI_Reduce( &flag, &flag_global, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+      MPI_Bcast( &flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     }while(flag);
-    
-    if(flagr){
-
-      //send the first int=2 to show that this process terminated
-      MPI_Recv( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &status );
-      linha[0]==2 ? flagr=0: flagr=1;
-      if(flagr){
-        memset(linha, 0, width * sizeof(int));
-        linha[0]=2;
-        MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
-      }
-      
-    }
 
   }else{
     int hi = rank * h;
@@ -492,60 +474,55 @@ int main(int argc, char *argv[]){
     memcpy( aux, &ret[hi-1], width * (h+2) * sizeof(int));
 
     int flag = 0;
-    int flagr1 = 1;
-    int flagr2 = 1;
+    int flag1 = 0;
+    int flag2 = 0;
 
     do {
     
       //flag: check if its the first iteration
       //flagr1: check if the process #rank-1 terminated
       //flagr2: check if the process #rank+1 terminated
-      if (flag && (flagr1 || flagr2)){
-
+      if(flag){
         MPI_Recv( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &status );
-        linha[0]==2 ? flagr1=0 : flagr1=1;
-
-        if(flagr1){
-          memcpy( matrix, linha, width * sizeof(int));
-        }
-
+        memcpy( matrix, linha, width * sizeof(int));
         memset(linha, 0, width * sizeof(int));
-        
-        MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
-        linha[0]==2 ? flagr2=0 : flagr2=1;
-        
-        if(flagr2){
-          memcpy( &matrix[(h+1)*width], linha, width * sizeof(int));
-        }
-
-        memset(linha, 0, width * sizeof(int));
-        
-      }
-
-      flag = process_file(fout, rank, size);
-      if(flagr1){
-
         memcpy( linha, &matrix[width], width * sizeof(int));
         MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
         memset(linha, 0, width * sizeof(int));
 
-      }
-
-      if(flagr2){ 
-
-        memcpy( linha, &matrix[h*width], width * sizeof(int));
+        memcpy( linha, &matrix[h * width], width * sizeof(int));
         MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
+        memset(linha, 0, width * sizeof(int));
+        MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
+        memcpy( &matrix[(h+1) * width], linha, width * sizeof(int));
         memset(linha, 0, width * sizeof(int));
 
       }
 
-    }while(flag);
+      flag1 = process_file(0);
 
-    //send the first int=2 to show that this process terminated
-    memset(linha, 0, width * sizeof(int));
-    linha[0]=2;
-    MPI_Send( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
-    MPI_Send( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
+      MPI_Recv( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD, &status );
+      memcpy( matrix, linha, width * sizeof(int));
+      memset(linha, 0, width * sizeof(int));
+      memcpy( linha, &matrix[width], width * sizeof(int));
+      MPI_Ssend( linha, width, MPI_INT, rank-1, 0, MPI_COMM_WORLD);
+      memset(linha, 0, width * sizeof(int));
+
+      memcpy( linha, &matrix[h * width], width * sizeof(int));
+      MPI_Ssend( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD);
+      memset(linha, 0, width * sizeof(int));
+      MPI_Recv( linha, width, MPI_INT, rank+1, 0, MPI_COMM_WORLD, &status );
+      memcpy( &matrix[(h+1) * width], linha, width * sizeof(int));
+      memset(linha, 0, width * sizeof(int));
+
+      flag2 = process_file(1);
+
+      flag = (flag1 || flag2);
+
+      MPI_Reduce( &flag, &flag_global, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+      MPI_Bcast( &flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    }while(flag);
 
   }
 
@@ -563,49 +540,76 @@ int main(int argc, char *argv[]){
     fprintf(fout,"%s\n", LINE);
     fprintf(fout, "%d %d\n", width, height);
 
-    //print_output_init(fout);
-
-    msg=rank;
     int i;
+
+    free(aux);
+    aux = (int *) malloc(width * height * sizeof(int));
+
+    memcpy(aux, matrix, h * width * sizeof(int));
 
     free(matrix);
     matrix = (int *) malloc(width * (h+2) * sizeof(int)); 
 
     for(i=1; i < size-1; i++){
 
-      MPI_Ssend( &msg, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-      MPI_Recv( matrix, (h+2) * width, MPI_INT, i, 0, MPI_COMM_WORLD, &status );
-
-      print_output(fout);
-      memset(matrix,0, (h+2) * width * sizeof(int));
+      MPI_Bcast( matrix, (h+2) * width, MPI_INT, i, MPI_COMM_WORLD);
+      memcpy(&aux[i*h*width], &matrix[width], h * width * sizeof(int));
+      memset(matrix, 0, width * (h+2) * sizeof(int));
 
     }
 
     free(matrix);
 
-    MPI_Ssend( &msg, 1, MPI_INT, size-1, 0, MPI_COMM_WORLD);
-    MPI_Recv( &nh, 1, MPI_INT, size-1, 0, MPI_COMM_WORLD, &status);
+    MPI_Bcast( &nh, 1, MPI_INT, size-1, MPI_COMM_WORLD);
 
-    matrix = (int *) malloc(width * (nh+1) * sizeof(int));
+    matrix = (int *) malloc(width * (nh+1) * sizeof(int)); 
 
-    MPI_Recv( matrix, width * (nh+1), MPI_INT, size-1, 0, MPI_COMM_WORLD, &status );
+    MPI_Bcast( matrix, nh * width, MPI_INT, size-1, MPI_COMM_WORLD);
+    memcpy(&aux[i*h*width], matrix, nh * width * sizeof(int));
 
-    printf("\n\n\n\n\n PRINTING LAST ONE \n\n\n\n\n");
+    int j;
 
-    print_output_last(size-1, fout);
+    for(i =0; i < height; i++){
+      for(j =0; j < width; j++){
+        fprintf(fout, "%d ", aux[i * width + j]);
+      }
+      fprintf(fout, "\n");
+    }
+
+    printf("Skeleton done!\n");
 
     fclose(fout);
 
   }else if ( rank==size-1 ) {
 
-    MPI_Recv( &msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status );
-    MPI_Ssend( &nh, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    MPI_Ssend( matrix, width * (nh+1), MPI_INT, 0, 0, MPI_COMM_WORLD);
+    free(aux);
+    aux = (int *) malloc(width * (h+2) * sizeof(int)); 
+
+    for(int i=1; i < size-1; i++){
+      
+      MPI_Bcast( aux, (h+2) * width, MPI_INT, i, MPI_COMM_WORLD);
+      memset(aux, 0, width * (h+2) * sizeof(int));
+
+    }
+
+    MPI_Bcast( &nh, 1, MPI_INT, size-1, MPI_COMM_WORLD);
+    MPI_Bcast( &matrix[width], nh * width, MPI_INT, size-1, MPI_COMM_WORLD);
 
   }else{
+    memset(aux, 0, width * (h+2) * sizeof(int));
 
-    MPI_Recv( &msg, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status );
-    MPI_Ssend( matrix, (h+2) * width, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    for(int i=1; i < size-1; i++){
+      if(i==rank){
+        MPI_Bcast( matrix, (h+2) * width, MPI_INT, i, MPI_COMM_WORLD);
+      }else{
+        MPI_Bcast( aux, (h+2) * width, MPI_INT, i, MPI_COMM_WORLD);
+        memset(aux, 0, width * (h+2) * sizeof(int));
+      }
+
+    }
+
+    MPI_Bcast( &nh, 1, MPI_INT, size-1, MPI_COMM_WORLD);
+    MPI_Bcast( &aux[width], nh * width, MPI_INT, size-1, MPI_COMM_WORLD);
 
   }
   
